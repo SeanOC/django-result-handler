@@ -1,0 +1,3 @@
+
+class ResultHandler(object):
+    pass
