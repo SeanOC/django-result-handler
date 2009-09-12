@@ -70,23 +70,35 @@ class ResultHandlerTests(TestCase):
         self.coffees.append(Coffee.objects.create(brand="dunkin doughnuts"))
         self.coffees.append(Coffee.objects.create(brand="starbucks"))
         
+    def assertHandled(self, handled, orig):
+        self.assertEqual(len(handled), len(orig))
+        for index, item in enumerate(handled):
+            self.assertEqual(item, orig[index])
+        
     def testSimpleHandler(self):
         query = "SELECT * FROM result_handler_author"
         handled_authors = ResultHandler(Author, query)
         self.assertHandled(handled_authors, self.authors)
         
-            
     def testFkeyHandler(self):
         query = "SELECT * FROM result_handler_book"
         handled_books = ResultHandler(Book, query)
         self.assertHandled(handled_books, self.books)
-            
+        
     def testDBColumnHandler(self):
         query = "SELECT * FROM result_handler_coffee"
         handled_coffees = ResultHandler(Coffee, query)
         self.assertHandled(handled_coffees, self.coffees)
+        
+    def testOrderHandler(self):
+        selects = (
+            ('dob, last_name, first_name, id'),
+            ('last_name, dob, first_name, id'),
+            ('first_name, last_name, dob, id'),
+        )
+        
+        for select in selects:
+            query = "SELECT %s FROM result_handler_author" % select
+            handled_authors = ResultHandler(Author, query)
+            self.assertHandled(handled_authors, self.authors)
     
-    def assertHandled(self, handled, orig):
-        self.assertEqual(len(handled), len(orig))
-        for index, item in enumerate(handled):
-            self.assertEqual(item, orig[index])
