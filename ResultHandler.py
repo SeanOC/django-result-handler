@@ -23,9 +23,28 @@ class ResultHandler(object):
         # Build a list of column names known by the model
         self.model_fields = [field.column for field in model._meta.fields]
         
-        
     def __iter__(self):
-        values = cursor.fetchone()
+        yield self._transform_result(cursor.fetchone())
         
-    def _transform_result(self, result):
-        pass
+    def _transform_result(self, values):
+        kwargs = {}
+        annotations = ()
+        
+        # Associate fields to values
+        for pos, value in enumerate(values):
+            field = self.fields[pos]
+            
+            # Separate properties from annotations
+            if field in self.model_fields:
+                kwargs[field] = value
+            else:
+                annotations += (field, value),
+                
+        # Construct model instance
+        instance = model(**kwargs)
+        
+        # Apply annotations
+        for field, value in annotations:
+            setattr(instance, field, value)
+            
+        return instance
