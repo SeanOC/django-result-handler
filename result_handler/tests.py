@@ -80,6 +80,12 @@ class ResultHandlerTests(TestCase):
         self.reviewers[0].reviewed.add(self.books[1])
         self.reviewers[0].reviewed.add(self.books[2])
         
+    def assertSuccessfulHandling(self, model, query, expected_results, expected_annotations=(), params=[], translations=None):
+        handled = ResultHandler(model, query, params, translations)
+        self.assertHandled(handled, expected_results)
+        self.assertAnnotations(handled, expected_annotations)
+        
+        
     def assertHandled(self, handled, orig):
         self.assertEqual(len(handled), len(orig))
         for index, item in enumerate(handled):
@@ -93,21 +99,15 @@ class ResultHandlerTests(TestCase):
         
     def testSimpleHandler(self):
         query = "SELECT * FROM result_handler_author"
-        handled_authors = ResultHandler(Author, query)
-        self.assertHandled(handled_authors, self.authors)
-        self.assertNoAnnotations(handled_authors)
+        self.assertSuccessfulHandling(Author, query, self.authors)
         
     def testFkeyHandler(self):
         query = "SELECT * FROM result_handler_book"
-        handled_books = ResultHandler(Book, query)
-        self.assertHandled(handled_books, self.books)
-        self.assertNoAnnotations(handled_books)
+        self.assertSuccessfulHandling(Book, query, self.books)
         
     def testDBColumnHandler(self):
         query = "SELECT * FROM result_handler_coffee"
-        handled_coffees = ResultHandler(Coffee, query)
-        self.assertHandled(handled_coffees, self.coffees)
-        self.assertNoAnnotations(handled_coffees)
+        self.assertSuccessfulHandling(Coffee, query, self.coffees)
         
     def testOrderHandler(self):
         selects = (
@@ -118,9 +118,7 @@ class ResultHandlerTests(TestCase):
         
         for select in selects:
             query = "SELECT %s FROM result_handler_author" % select
-            handled_authors = ResultHandler(Author, query)
-            self.assertHandled(handled_authors, self.authors)
-            self.assertNoAnnotations(handled_authors)
+            self.assertSuccessfulHandling(Author, query, self.authors)
             
     def testTranslations(self):
         query = "SELECT first_name AS first, last_name AS last, dob, id FROM result_handler_author"
@@ -128,17 +126,18 @@ class ResultHandlerTests(TestCase):
             ('first', 'first_name'),
             ('last', 'last_name'),
         )
-        handled_authors = ResultHandler(Author, query, translations=translations)
-        self.assertNoAnnotations(handled_authors)
+        self.assertSuccessfulHandling(Author, query, self.authors, translations=translations)
         
     def testParams(self):
         query = "SELECT * FROM result_handler_author WHERE first_name = %s"
         params = [self.authors[2].first_name]
-        handled_authors = ResultHandler(Author, query, params=params)
-        self.assertEqual(len(handled_authors), 1)
-        self.assertHandled(handled_authors, [self.authors[2]])
+        handled = ResultHandler(Author, query, params)
+        self.assertHandled(handled, [self.authors[2]])
+        self.assertNoAnnotations(handled)
+        self.assertEqual(len(handled), 1)
         
     def testManyToMany(self):
         query = "SELECT * FROM result_handler_reviewer"
-        handled_reviewers = ResultHandler(Reviewer, query)
-        self.assertHandled(handled_reviewers, self.reviewers)
+        self.assertSuccessfulHandling(Reviewer, query, self.reviewers)
+        
+        
