@@ -140,4 +140,8 @@ class ResultHandlerTests(TestCase):
         query = "SELECT * FROM result_handler_reviewer"
         self.assertSuccessfulHandling(Reviewer, query, self.reviewers)
         
+    def testExtraConversions(self):
+        query = "SELECT * FROM result_handler_author"
+        translations = (('something', 'else'),)
+        self.assertSuccessfulHandling(Author, query, self.authors, translations=translations)
         
