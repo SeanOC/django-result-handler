@@ -58,7 +58,7 @@ class ResultHandler(object):
                 annotations += (column, value),
                 
         if len(kwargs) < len(self.model_fields):
-            missing = [colunm for column, field in self.model_fields if field not in kwargs.keys]
+            missing = [column for column, field in self.model_fields.items() if field not in kwargs.keys()]
             raise InsuficientColumnsException("They query passed doesn't contain all of the needed columns.  The missing columns are: %s" % ', '.join(missing))
             
         # Construct model instance
