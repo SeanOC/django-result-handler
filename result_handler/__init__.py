@@ -14,8 +14,8 @@ class ResultHandler(object):
         if translations is not None:
             for translation in translations:
                 try:
-                    index = fields.index(translation[0])
-                    self.fields[index] = translation[1]
+                    index = self.columns.index(translation[0])
+                    self.columns[index] = translation[1]
                 except ValueError:
                     # Ignore transations for non-existant column names
                     pass

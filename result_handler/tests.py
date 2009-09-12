@@ -101,4 +101,11 @@ class ResultHandlerTests(TestCase):
             query = "SELECT %s FROM result_handler_author" % select
             handled_authors = ResultHandler(Author, query)
             self.assertHandled(handled_authors, self.authors)
-    
+            
+    def testTranslations(self):
+        query = "SELECT first_name AS first, last_name AS last, dob, id FROM result_handler_author"
+        translations = (
+            ('first', 'first_name'),
+            ('last', 'last_name'),
+        )
+        handled_authors = ResultHandler(Author, query, translations=translations)
