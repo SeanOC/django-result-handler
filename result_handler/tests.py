@@ -109,3 +109,10 @@ class ResultHandlerTests(TestCase):
             ('last', 'last_name'),
         )
         handled_authors = ResultHandler(Author, query, translations=translations)
+        
+    def testParams(self):
+        query = "SELECT * FROM result_handler_author WHERE first_name = %s"
+        params = [self.authors[2].first_name]
+        handled_authors = ResultHandler(Author, query, params=params)
+        self.assertEqual(len(handled_authors), 1)
+        self.assertHandled(handled_authors, [self.authors[2]])
