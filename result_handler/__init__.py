@@ -1,5 +1,11 @@
 from django.db import connection
 
+class InsuficientColumnsException(Exception):
+    """
+    The query passed to raw doesn't include all of the columns needed to build 
+    a model instance.
+    """
+
 class ResultHandler(object):
     
     def __init__(self, model, query, params=[], translations=None):
@@ -7,6 +13,8 @@ class ResultHandler(object):
         self.cursor = connection.cursor()
         self.cursor.execute(query, params)
         self.model = model
+        self._kwargs = {}
+        self._annotations = ()
         
         # Figure out the column names
         self.columns = [column_meta[0] for column_meta in self.cursor.description]
@@ -36,8 +44,8 @@ class ResultHandler(object):
         return self.cursor.rowcount
         
     def _transform_result(self, values):
-        kwargs = {}
-        annotations = ()
+        kwargs = self._kwargs
+        annotations = self._annotations
         
         # Associate fields to values
         for pos, value in enumerate(values):
@@ -49,6 +57,10 @@ class ResultHandler(object):
             else:
                 annotations += (column, value),
                 
+        if len(kwargs) < len(self.model_fields):
+            missing = [colunm for column, field in self.model_fields if field not in kwargs.keys]
+            raise InsuficientColumnsException("They query passed doesn't contain all of the needed columns.  The missing columns are: %s" % ', '.join(missing))
+            
         # Construct model instance
         instance = self.model(**kwargs)
         
