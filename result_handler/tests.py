@@ -3,7 +3,7 @@ from datetime import datetime
 from django.db import models
 from django.test import TestCase
 
-from result_handler import ResultHandler
+from result_handler import ResultHandler, InsuficientColumnsException, InvalidQueryException
 
     
 class Author(models.Model):
@@ -82,14 +82,18 @@ class ResultHandlerTests(TestCase):
         
     def assertSuccessfulHandling(self, model, query, expected_results, expected_annotations=(), params=[], translations=None):
         handled = ResultHandler(model, query, params, translations)
-        self.assertHandled(handled, expected_results)
+        self.assertHandled(handled, expected_results, expected_annotations)
         self.assertAnnotations(handled, expected_annotations)
         
         
-    def assertHandled(self, handled, orig):
+    def assertHandled(self, handled, orig, expected_annotations=()):
         self.assertEqual(len(handled), len(orig))
         for index, item in enumerate(handled):
-            self.assertEqual(item, orig[index])
+            orig_item = orig[index]
+            for annotation in expected_annotations:
+                setattr(orig_item, *annotation)
+            
+            self.assertEqual(item.id, orig_item.id)
             
     def assertNoAnnotations(self, handled):
         self.assertAnnotations(handled, ())
@@ -145,3 +149,27 @@ class ResultHandlerTests(TestCase):
         translations = (('something', 'else'),)
         self.assertSuccessfulHandling(Author, query, self.authors, translations=translations)
         
+    def testInsufficientColumns(self):
+        query = "SELECT first_name, dob FROM result_handler_author"
+        raised = False
+        try:
+            self.assertSuccessfulHandling(Author, query, self.authors)
+        except InsuficientColumnsException:
+            raised = True
+            
+        self.assertTrue(raised)
+        
+    def testAnnotations(self):
+        query = "SELECT a.*, count(b.id) as book_count FROM result_handler_author a LEFT JOIN result_handler_book b ON a.id = b.author_id GROUP BY a.id, a.first_name, a.last_name, a.dob ORDER BY a.id"
+        expected_annotations = (
+            ('book_count', 3),
+            ('book_count', 0),
+            ('book_count', 1),
+            ('book_count', 0),
+        )
+        self.assertSuccessfulHandling(Author, query, self.authors, expected_annotations)
+        
+    def testInvalidQuery(self):
+        query = "UPDATE result_handler_author SET first_name='thing' WHERE first_name='Joe'"
+        self.assertRaises(InvalidQueryException, ResultHandler, Author, query)
+            

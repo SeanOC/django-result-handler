@@ -5,17 +5,25 @@ class InsuficientColumnsException(Exception):
     The query passed to raw doesn't include all of the columns needed to build 
     a model instance.
     """
+    pass
+    
+class InvalidQueryException(Exception):
+    """
+    The query passed to raw isn't a safe query to use with raw.
+    """
+    pass
 
 class ResultHandler(object):
     
     def __init__(self, model, query, params=[], translations=None):
         # setup instance info
+        self.validate_query(query)
+        
         self.cursor = connection.cursor()
         self.cursor.execute(query, params)
         self.model = model
         self._kwargs = {}
         self._annotations = ()
-        
         # Figure out the column names
         self.columns = [column_meta[0] for column_meta in self.cursor.description]
         # Adjust any column names which don't match field names
@@ -67,5 +75,12 @@ class ResultHandler(object):
         # Apply annotations
         for field, value in annotations:
             setattr(instance, field, value)
-            
+        
+        # make the kwargs and annotation metadata available to the unit tests
+        self._kwargs = kwargs
+        self._annotations = annotations
         return instance
+    
+    def validate_query(self, query):
+        if not query.lower().startswith('select'):
+            raise InvalidQueryException('Raw only handles select queries.')
